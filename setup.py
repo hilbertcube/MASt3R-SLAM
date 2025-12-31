@@ -6,7 +6,8 @@ from torch.utils.cpp_extension import BuildExtension, CppExtension
 import os
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-has_cuda = torch.cuda.is_available()
+cuda_home = os.environ.get("CUDA_HOME", "/usr/local/cuda")
+has_cuda = os.path.exists(os.path.join(cuda_home, "bin", "nvcc"))
 
 include_dirs = [
     os.path.join(ROOT, "mast3r_slam/backend/include"),

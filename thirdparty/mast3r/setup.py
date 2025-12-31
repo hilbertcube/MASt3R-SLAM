@@ -18,7 +18,7 @@ setup(
         "tensorboard",
         "pyglet",
         "huggingface-hub[torch]>=0.22",
-        f"curope @ {curope.as_uri()}",
+        #f"curope @ {curope.as_uri()}",
         f"asmk @ {asmk.as_uri()}",
     ],
 )

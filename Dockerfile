@@ -15,6 +15,8 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
     && bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda \
     && rm Miniconda3-latest-Linux-x86_64.sh
 
+RUN apt-get update && apt-get install -y libusb-1.0-0-dev
+
 # Setup environment
 ENV PATH="/opt/conda/bin:$PATH"
 WORKDIR /app
