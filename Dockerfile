@@ -1,37 +1,47 @@
-# Use NVIDIA CUDA base image with Ubuntu 22.04
-FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
 
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
 ENV CUDA_HOME=/usr/local/cuda
+ENV PATH="$CUDA_HOME/bin:$PATH"
+ENV LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-dev \
-    python3-pip \
-    git \
-    wget \
+    wget curl git build-essential \
+    libgl1-mesa-glx libglib2.0-0 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Python 3.11 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+# Install Miniconda
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda \
+    && rm Miniconda3-latest-Linux-x86_64.sh
 
-# Upgrade pip
-RUN python -m pip install --upgrade pip
+# Setup environment
+ENV PATH="/opt/conda/bin:$PATH"
+WORKDIR /app
 
-# Set working directory
-WORKDIR /workspace
+# Accept Anaconda Terms of Service for default channels
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
-# Copy project files
-COPY . /workspace/
+# Copy and install dependencies
+COPY . .
+RUN conda create -y -n mast3r-slam python=3.11
+ENV PATH="/opt/conda/envs/mast3r-slam/bin:$PATH"
 
-# Install PyTorch with CUDA 12.4
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Install PyTorch with CUDA 12.1 support
+RUN pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
 
-# Install MASt3R
-RUN pip install --no-build-isolation -e thirdparty/mast3r
+# Set CUDA arch for RTX 4070
+ENV TORCH_CUDA_ARCH_LIST="8.9"
 
-# Set entrypoint
-CMD ["/bin/bash"]
+# Install curope first (with no build isolation)
+RUN pip install --no-build-isolation thirdparty/mast3r/dust3r/croco/models/curope
+
+# Install mast3r and in3d in editable mode
+RUN pip install -e thirdparty/mast3r
+RUN pip install -e thirdparty/in3d
+
+RUN ls -l /usr/local/cuda/bin/nvcc
+
+# Install main repo
+RUN pip install --no-build-isolation -e .
